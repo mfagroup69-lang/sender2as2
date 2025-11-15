@@ -136,12 +136,12 @@
     // -----------------------------
     // إعدادات — غيّر إذا لزم
     // -----------------------------
-    const API = "https://zkr-495g.onrender.com/tasks"; // رابط الـ API الخاص بك
+    <!-- const API = "https://zkr-495g.onrender.com/tasks"; // رابط الـ API الخاص بك -->
     const ACTIVATION_CODE = "ran-/u87"; // كود التفعيل
 
     // -----------------------------
     // Activation logic
-    // -----------------------------
+    <!-- // ----------------------------- -->
     const overlay = document.getElementById('activationOverlay');
     const activationBtn = document.getElementById('activationBtn');
     const activationInput = document.getElementById('activationInput');
@@ -185,28 +185,10 @@
 
     sendBtn.addEventListener('click', async () => {
       // must be activated
-      const subject = document.getElementById('subject').value.trim();
-const task = document.getElementById('task').value.trim();
-const date = document.getElementById('date').value || "";
-
-// 🔥 إنشاء ID فريد
-const id = "task-" + crypto.randomUUID();
-
-statusEl.style.color = "#fff";
-statusEl.textContent = "⏳ جارٍ الإرسال...";
-
-try {
-  const res = await fetch(API, {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({
-      id,
-      subject,
-      task,
-      date
-    })
-  });
-
+      if(sessionStorage.getItem('rem_activated') !== ACTIVATION_CODE){
+        alert('يجب إدخال رمز التفعيل أولاً.');
+        checkActivation();
+        return;
       }
 
       const subject = document.getElementById('subject').value.trim();
@@ -226,12 +208,7 @@ try {
         const res = await fetch(API, {
           method: "POST",
           headers: {"Content-Type":"application/json"},
-          // إنشاء ID فريد للمهمة
-        const id = "task-" + crypto.randomUUID();
-
-       // إرسال المهمة مع الـ ID
-        body: JSON.stringify({ id, subject, task, date })
-
+          body: JSON.stringify({subject, task, date})
         });
 
         if(res.ok){
@@ -257,4 +234,3 @@ try {
   </script>
 </body>
 </html>
-
