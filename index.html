@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ذكرني — إرسال المهمة</title>
+  <style>
+    :root{
+      --orange1:#ff8a00;
+      --orange2:#ff5e00;
+      --bg:#fff;
+      --muted:#666;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: "Tajawal", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg, #fff7f0 0%, #fff 100%);
+      color:#222;
+      direction:rtl;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+      gap:20px;
+    }
+
+    .container{
+      width:100%;
+      max-width:540px;
+      background:linear-gradient(135deg,var(--orange1),var(--orange2));
+      border-radius:16px;
+      padding:18px;
+      box-shadow:0 12px 30px rgba(255,110,20,0.15);
+    }
+
+    .card{
+      background:var(--bg);
+      border-radius:12px;
+      padding:18px;
+      box-shadow:0 6px 18px rgba(0,0,0,0.06);
+    }
+
+    h1{margin:0 0 10px;color:#fff;text-align:center;font-size:20px}
+    .sub{color:rgba(255,255,255,0.95);text-align:center;margin-bottom:16px}
+
+    label{display:block;text-align:right;font-weight:600;margin-top:10px}
+    input[type="text"], input[type="date"], textarea{
+      width:100%;
+      padding:12px 14px;
+      margin-top:8px;
+      border-radius:10px;
+      border:1px solid #eee;
+      font-size:15px;
+      resize:vertical;
+    }
+    textarea{min-height:110px}
+
+    .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    .btn{
+      background:#fff;
+      color:var(--orange2);
+      border:none;
+      padding:12px 14px;
+      border-radius:10px;
+      font-weight:700;
+      cursor:pointer;
+      box-shadow:0 6px 12px rgba(0,0,0,0.06);
+      flex:1;
+    }
+    .btn:active{transform:translateY(1px)}
+
+    #status{
+      margin-top:12px;
+      text-align:center;
+      font-weight:700;
+      color:#fff;
+    }
+
+    /* activation modal */
+    .overlay{
+      position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;padding:20px;z-index:999;
+    }
+    .modal{
+      background:#fff;border-radius:12px;padding:20px;max-width:420px;width:100%;box-shadow:0 8px 30px rgba(0,0,0,0.25);text-align:right;
+    }
+    .modal h2{margin:0 0 8px;color:var(--orange2)}
+    .modal p{margin:0 0 12px;color:var(--muted)}
+    .modal input{width:100%;padding:10px;border-radius:8px;border:1px solid #ddd;font-size:16px;margin-bottom:10px}
+    .modal button{background:var(--orange2);color:#fff;border:none;padding:10px 12px;border-radius:8px;font-weight:700;cursor:pointer;width:100%}
+
+    @media (max-width:520px){
+      body{padding:12px}
+      .container{padding:14px}
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>📤 ذكرني — إرسال المهام</h1>
+    <p class="sub">أدخل بيانات المهمة ثم اضغط "إرسال". (يستلزم إدخال كود التفعيل)</p>
+
+    <div class="card">
+      <label for="subject">اسم المادة</label>
+      <input id="subject" type="text" placeholder="مثال: الرياضيات">
+
+      <label for="task">تفاصيل المهمة</label>
+      <textarea id="task" placeholder="اكتب الواجب أو الملاحظات..."></textarea>
+
+      <label for="date">موعد التسليم (اختياري)</label>
+      <input id="date" type="date">
+
+      <div class="row">
+        <button id="sendBtn" class="btn">إرسال المهمة</button>
+      </div>
+
+      <div id="status"></div>
+    </div>
+  </div>
+
+  <!-- Activation modal -->
+  <div id="activationOverlay" class="overlay" style="display:none">
+    <div class="modal" role="dialog" aria-modal="true">
+      <h2>رمز التفعيل</h2>
+      <p>يرجى إدخال رمز التفعيل للدخول إلى هذه الصفحة.</p>
+      <input id="activationInput" placeholder="أدخل الرمز هنا">
+      <button id="activationBtn">دخول</button>
+      <p style="margin-top:8px;color:#999;font-size:13px">رمز التفعيل: <strong>فتحي</strong></p>
+      <p id="actError" style="color:#c00;margin-top:8px;display:none"></p>
+    </div>
+  </div>
+
+  <script>
+    // -----------------------------
+    // إعدادات — غيّر إذا لزم
+    // -----------------------------
+    const API = "https://zkr-495g.onrender.com/tasks"; // رابط الـ API الخاص بك
+    const ACTIVATION_CODE = "ran-/u87"; // كود التفعيل
+
+    // -----------------------------
+    // Activation logic
+    // -----------------------------
+    const overlay = document.getElementById('activationOverlay');
+    const activationBtn = document.getElementById('activationBtn');
+    const activationInput = document.getElementById('activationInput');
+    const actError = document.getElementById('actError');
+
+    function checkActivation(){
+      // sessionStorage يمنع طلب الكود مرة ثانية في نفس التبويب
+      if(sessionStorage.getItem('rem_activated') === ACTIVATION_CODE){
+        overlay.style.display = 'none';
+        return true;
+      }
+      overlay.style.display = 'flex';
+      activationInput.focus();
+      return false;
+    }
+
+    activationBtn.addEventListener('click', () => {
+      const v = activationInput.value.trim();
+      if(v === ACTIVATION_CODE){
+        sessionStorage.setItem('rem_activated', ACTIVATION_CODE);
+        overlay.style.display = 'none';
+      } else {
+        actError.style.display = 'block';
+        actError.textContent = "رمز خاطئ، حاول مرة أخرى.";
+      }
+    });
+
+    // Allow Enter key
+    activationInput.addEventListener('keydown', (e) => {
+      if(e.key === 'Enter') activationBtn.click();
+    });
+
+    // run on load
+    checkActivation();
+
+    // -----------------------------
+    // Sending tasks
+    // -----------------------------
+    const sendBtn = document.getElementById('sendBtn');
+    const statusEl = document.getElementById('status');
+
+    sendBtn.addEventListener('click', async () => {
+      // must be activated
+      if(sessionStorage.getItem('rem_activated') !== ACTIVATION_CODE){
+        alert('يجب إدخال رمز التفعيل أولاً.');
+        checkActivation();
+        return;
+      }
+
+      const subject = document.getElementById('subject').value.trim();
+      const task = document.getElementById('task').value.trim();
+      const date = document.getElementById('date').value || "";
+
+      if(!subject || !task){
+        statusEl.style.color = "#c00";
+        statusEl.textContent = "⚠️ الرجاء ملء المادة وتفاصيل المهمة.";
+        return;
+      }
+
+      statusEl.style.color = "#fff";
+      statusEl.textContent = "⏳ جارٍ الإرسال...";
+
+      try {
+        const res = await fetch(API, {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify({subject, task, date})
+        });
+
+        if(res.ok){
+          statusEl.style.color = "#fff";
+          statusEl.textContent = "✅ تم إرسال المهمة بنجاح!";
+          document.getElementById('subject').value = "";
+          document.getElementById('task').value = "";
+          document.getElementById('date').value = "";
+        } else {
+          statusEl.style.color = "#fff";
+          statusEl.textContent = "❌ حدث خطأ من الخادم.";
+          console.error('Server returned', res.status);
+        }
+      } catch (err){
+        statusEl.style.color = "#fff";
+        statusEl.textContent = "🚫 لا يمكن الاتصال بالخادم.";
+        console.error(err);
+      }
+
+      // اخفاء الرسالة بعد 4 ثواني
+      setTimeout(()=> { statusEl.textContent = ""; }, 4000);
+    });
+  </script>
+</body>
+</html>
